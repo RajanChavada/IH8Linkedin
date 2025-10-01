@@ -20,42 +20,69 @@ if (window.__moodguard_loaded) {
   const CHECK_MS = 200; // how often to run detection
   let faceapi = null; // Will hold the imported face-api
 
-  // Replace your current ensureFaceApi function with this implementation
+  // Update the ensureFaceApi function to handle URL errors safely
+
 async function ensureFaceApi() {
   return new Promise((resolve, reject) => {
-    // Create a unique message namespace for this instance
-    const namespace = `face-api-bridge-${Date.now()}`;
-    
-    // Get the URLs for our resources
-    const bridgeScriptUrl = chrome.runtime.getURL('face-api-bridge.js');
-    const faceApiUrl = chrome.runtime.getURL('face-api.min.js');
-    
-    // Create a message channel to communicate with the injected script
-    const channel = new BroadcastChannel(namespace);
-    
-    // Set up listener for messages from the bridge
-    channel.onmessage = (event) => {
-      const { type, data } = event.data;
+    try {
+      // Create a unique message namespace for this instance
+      const namespace = `face-api-bridge-${Date.now()}`;
       
-      if (type === 'FACE_API_READY') {
-        // Create and return our proxy API
-        const proxyAPI = createProxyAPI(channel, namespace);
-        resolve(proxyAPI);
-      } else if (type === 'FACE_API_ERROR') {
-        reject(new Error(data.message));
+      // Get the URLs for our resources
+      const bridgeScriptUrl = chrome.runtime.getURL('face-api-bridge.js');
+      const faceApiUrl = chrome.runtime.getURL('face-api.min.js');
+      
+      if (!bridgeScriptUrl || !faceApiUrl) {
+        throw new Error('Failed to get extension resource URLs');
       }
-    };
-    
-    // Add message namespace as URL parameter so the bridge knows which channel to use
-    const scriptElement = document.createElement('script');
-    scriptElement.src = `${bridgeScriptUrl}?namespace=${namespace}&apiUrl=${encodeURIComponent(faceApiUrl)}`;
-    scriptElement.onerror = () => reject(new Error('Failed to load bridge script'));
-    document.head.appendChild(scriptElement);
-    
-    // Set timeout for loading
-    setTimeout(() => {
-      reject(new Error('Timed out waiting for face-api to initialize'));
-    }, 10000);
+      
+      // Create a message channel to communicate with the injected script
+      const channel = new BroadcastChannel(namespace);
+      
+      // Set up listener for messages from the bridge
+      channel.onmessage = (event) => {
+        if (!event || !event.data) return;
+        
+        const { type, data } = event.data;
+        
+        if (type === 'FACE_API_READY') {
+          // Create and return our proxy API
+          const proxyAPI = createProxyAPI(channel, namespace);
+          resolve(proxyAPI);
+        } else if (type === 'FACE_API_ERROR') {
+          reject(new Error(data?.message || 'Unknown face API error'));
+        }
+      };
+      
+      // First inject the bridge script
+      const scriptElement = document.createElement('script');
+      scriptElement.src = bridgeScriptUrl;
+      scriptElement.onload = () => {
+        // Now initialize the bridge with a message
+        window.postMessage({
+          type: 'FACE_API_BRIDGE_INIT',
+          namespace: namespace,
+          faceApiUrl: faceApiUrl
+        }, '*');
+      };
+      
+      scriptElement.onerror = (e) => {
+        console.error('Script loading error:', e);
+        reject(new Error('Failed to load bridge script - CSP may be blocking'));
+      };
+      
+      // Add the script to document
+      document.head.appendChild(scriptElement);
+      
+      // Set timeout for loading
+      setTimeout(() => {
+        reject(new Error('Timed out waiting for face-api to initialize'));
+      }, 15000); // Increased timeout to 15 seconds
+      
+    } catch (err) {
+      console.error('ensureFaceApi setup error:', err);
+      reject(err);
+    }
   });
 }
 
@@ -299,6 +326,149 @@ if (window.emotionDetectionActive) {
   window.emotionDetectionActive = true;
   console.log('LinkedIn detected - initializing emotion detection');
   
+  // Add this function at the beginning of the second part, making a proper copy of it
+  async function ensureFaceApi() {
+    return new Promise((resolve, reject) => {
+      try {
+        // Create a unique message namespace for this instance
+        const namespace = `face-api-bridge-${Date.now()}`;
+        
+        // Get the URLs for our resources
+        const bridgeScriptUrl = chrome.runtime.getURL('face-api-bridge.js');
+        const faceApiUrl = chrome.runtime.getURL('face-api.min.js');
+        
+        if (!bridgeScriptUrl || !faceApiUrl) {
+          throw new Error('Failed to get extension resource URLs');
+        }
+        
+        // Create a message channel to communicate with the injected script
+        const channel = new BroadcastChannel(namespace);
+        
+        // Set up listener for messages from the bridge
+        channel.onmessage = (event) => {
+          if (!event || !event.data) return;
+          
+          const { type, data } = event.data;
+          
+          if (type === 'FACE_API_READY') {
+            // Create and return our proxy API
+            const proxyAPI = createProxyAPI(channel, namespace);
+            resolve(proxyAPI);
+          } else if (type === 'FACE_API_ERROR') {
+            reject(new Error(data?.message || 'Unknown face API error'));
+          }
+        };
+        
+        // First inject the bridge script
+        const scriptElement = document.createElement('script');
+        scriptElement.src = bridgeScriptUrl;
+        scriptElement.onload = () => {
+          // Now initialize the bridge with a message
+          window.postMessage({
+            type: 'FACE_API_BRIDGE_INIT',
+            namespace: namespace,
+            faceApiUrl: faceApiUrl
+          }, '*');
+        };
+        
+        scriptElement.onerror = (e) => {
+          console.error('Script loading error:', e);
+          reject(new Error('Failed to load bridge script - CSP may be blocking'));
+        };
+        
+        // Add the script to document
+        document.head.appendChild(scriptElement);
+        
+        // Set timeout for loading
+        setTimeout(() => {
+          reject(new Error('Timed out waiting for face-api to initialize'));
+        }, 15000); // Increased timeout to 15 seconds
+        
+      } catch (err) {
+        console.error('ensureFaceApi setup error:', err);
+        reject(err);
+      }
+    });
+  }
+
+  // Also add the createProxyAPI function that's needed by ensureFaceApi
+  function createProxyAPI(channel, namespace) {
+    return {
+      nets: {
+        tinyFaceDetector: {
+          loadFromUri: (uri) => sendRequest(channel, 'loadModel', ['tinyFaceDetector', uri])
+        },
+        faceExpressionNet: {
+          loadFromUri: (uri) => sendRequest(channel, 'loadModel', ['faceExpressionNet', uri])
+        }
+      },
+      TinyFaceDetectorOptions: function(options) {
+        this.inputSize = options.inputSize;
+        this.scoreThreshold = options.scoreThreshold;
+      },
+      detectSingleFace: (videoEl, options) => {
+        // Ensure video has an ID for reference
+        if (!videoEl.id) {
+          videoEl.id = `face-api-video-${Date.now()}`;
+        }
+        
+        // We'll attach the withFaceExpressions method to the returned promise
+        const promise = sendRequest(channel, 'detectFace', [
+          videoEl.id, 
+          {
+            inputSize: options.inputSize,
+            scoreThreshold: options.scoreThreshold
+          }
+        ]);
+        
+        // Add the withFaceExpressions method
+        promise.withFaceExpressions = () => promise;
+        
+        return promise;
+      }
+    };
+  }
+
+  // Add the sendRequest function too
+  function sendRequest(channel, method, args) {
+    return new Promise((resolve, reject) => {
+      const requestId = Date.now() + Math.random().toString(36).substr(2, 9);
+      
+      // Create a one-time message handler for this request
+      const handler = (event) => {
+        const { type, data } = event.data;
+        if (type !== 'RESPONSE' || data.requestId !== requestId) return;
+        
+        // Remove this listener once we get our response
+        channel.removeEventListener('message', handler);
+        
+        if (data.error) {
+          reject(new Error(data.error));
+        } else {
+          resolve(data.result);
+        }
+      };
+      
+      channel.addEventListener('message', handler);
+      
+      // Send the request
+      channel.postMessage({
+        type: 'REQUEST',
+        data: {
+          method,
+          args,
+          requestId
+        }
+      });
+      
+      // Set timeout
+      setTimeout(() => {
+        channel.removeEventListener('message', handler);
+        reject(new Error(`Request timeout for method: ${method}`));
+      }, 10000);
+    });
+  }
+  
   // Create container for the emotion detection panel
   const container = document.createElement('div');
   container.id = 'ih8linkedin-container';
@@ -446,17 +616,6 @@ if (window.emotionDetectionActive) {
   fontLink.rel = 'stylesheet';
   document.head.appendChild(fontLink);
   
-  // Load face-api.js
-  function loadScript(src) {
-    return new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = src;
-      script.onload = resolve;
-      script.onerror = reject;
-      document.head.appendChild(script);
-    });
-  }
-  
   // Configuration for emotion detection
   const config = {
     targetEmotion: 'sad',      // Which emotion to monitor
@@ -475,28 +634,86 @@ if (window.emotionDetectionActive) {
   // Initialize detection
   async function initialize() {
     try {
-      // Check for WebGL support first
-      if (!isWebGLSupported()) {
-        throw new Error("WebGL is not supported on this device");
+      document.getElementById('ih8linkedin-status').textContent = "Initializing...";
+      
+      // Try to use the face API bridge
+      try {
+        faceapi = await ensureFaceApi();
+        
+        document.getElementById('ih8linkedin-status').textContent = "Connecting camera...";
+        
+        // Start camera
+        const cameraStarted = await startCamera();
+        if (!cameraStarted) {
+          throw new Error("Failed to start camera");
+        }
+        
+        // Load models
+        document.getElementById('ih8linkedin-status').textContent = "Loading models...";
+        await loadModels();
+        
+        // Start detection
+        startDetection();
+        
+      } catch (apiError) {
+        console.warn('Face API initialization failed, using fallback mode:', apiError);
+        
+        // Switch to fallback mode
+        document.getElementById('ih8linkedin-status').textContent = "Limited Mode";
+        document.getElementById('ih8linkedin-emotion').innerHTML = `
+          <div style="padding: 10px 0;">
+            <p>Running in limited mode due to LinkedIn's security policy.</p>
+            <p style="margin-top: 10px; font-size: 13px;">
+              You can still use these features:
+            </p>
+          </div>
+        `;
+        
+        // Add alternative functionality buttons
+        const buttonContainer = document.createElement('div');
+        buttonContainer.style.cssText = `
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          margin-top: 10px;
+        `;
+        
+        const breakButton = document.createElement('button');
+        breakButton.textContent = '🏝️ Take a Break';
+        breakButton.style.cssText = `
+          background: linear-gradient(135deg, #3371e3, #5e60ce);
+          color: white;
+          border: none;
+          padding: 10px 15px;
+          border-radius: 25px;
+          font-size: 14px;
+          cursor: pointer;
+        `;
+        
+        breakButton.addEventListener('click', () => {
+          window.open('https://www.youtube.com/results?search_query=relaxing+videos', '_blank');
+        });
+        
+        const moodButton = document.createElement('button');
+        moodButton.textContent = '😊 Mood Booster';
+        moodButton.style.cssText = `
+          background: linear-gradient(135deg, #10b981, #3b82f6);
+          color: white;
+          border: none;
+          padding: 10px 15px;
+          border-radius: 25px;
+          font-size: 14px;
+          cursor: pointer;
+        `;
+        
+        moodButton.addEventListener('click', () => {
+          window.open('https://www.youtube.com/results?search_query=cute+animals+funny', '_blank');
+        });
+        
+        buttonContainer.appendChild(breakButton);
+        buttonContainer.appendChild(moodButton);
+        document.getElementById('ih8linkedin-emotion').appendChild(buttonContainer);
       }
-      
-      // Use the existing ensureFaceApi function from the first part of your code
-      faceapi = await ensureFaceApi();
-      
-      document.getElementById('ih8linkedin-status').textContent = "Connecting camera...";
-      
-      // Start camera
-      const cameraStarted = await startCamera();
-      if (!cameraStarted) {
-        throw new Error("Failed to start camera");
-      }
-      
-      // Load models
-      document.getElementById('ih8linkedin-status').textContent = "Loading models...";
-      await loadModels();
-      
-      // Start detection
-      startDetection();
       
       // Set up event listeners
       document.getElementById('ih8linkedin-toggle').addEventListener('click', toggleDetection);
@@ -506,32 +723,23 @@ if (window.emotionDetectionActive) {
       console.error('Initialization error:', error);
       document.getElementById('ih8linkedin-status').textContent = 'Error';
       document.getElementById('ih8linkedin-emotion').textContent = `Error: ${error.message}`;
-      
-      // Show detailed error message and fallback option
-      const emotionDisplay = document.getElementById('ih8linkedin-emotion');
-      emotionDisplay.innerHTML = `
-        <div style="color: #ef4444; font-weight: 500; margin-bottom: 8px;">
-          ${error.message}
-        </div>
-        <div style="font-size: 12px; opacity: 0.8;">
-          Try using Chrome or Edge on a desktop device
-        </div>
-      `;
     }
   }
   
-  // Add WebGL detection function
-  function isWebGLSupported() {
+  async function startCamera() {
     try {
-      const canvas = document.createElement('canvas');
-      return !!(window.WebGLRenderingContext && 
-        (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')));
-    } catch(e) {
+      const video = document.getElementById('ih8linkedin-video');
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      video.srcObject = stream;
+      return true;
+    } catch (err) {
+      console.error("Camera error:", err);
+      document.getElementById('ih8linkedin-status').textContent = "Camera error";
       return false;
     }
   }
   
-  // Update loadModels function to use the bridge API properly
+  // Update loadModels function to handle missing faceapi
   async function loadModels() {
     try {
       if (!faceapi || !faceapi.nets) {
@@ -554,7 +762,7 @@ if (window.emotionDetectionActive) {
     }
   }
   
-  // Update startDetection to handle possible errors
+  // Update startDetection to handle missing faceapi
   function startDetection() {
     if (detectionActive || !faceapi) return;
     

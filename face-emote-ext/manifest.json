@@ -20,7 +20,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["*.js", "*.json", "face-api.min.js", "models/*", "popup.html", "styles.css"],
+      "resources": ["face-api-bridge.js", "face-api.min.js", "models/*"],
       "matches": ["<all_urls>"]
     }
   ]

@@ -7,8 +7,8 @@ const emotionDisplay = document.getElementById('emotion-display');
 
 // Configuration for emotion detection
 const config = {
-  targetEmotion: 'sad',      // Which emotion to monitor
-  threshold: 0.6,            // Threshold (0-1) for emotion detection
+  targetEmotion: 'surprised',      // Which emotion to monitor
+  threshold: 0.8,            // Threshold (0-1) for emotion detection
   minDuration: 3,            // How many seconds the emotion must persist
   cooldownPeriod: 10,        // Seconds before another action can trigger
   actionType: 'notification' // Type of action to perform
