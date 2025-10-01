@@ -2,14 +2,8 @@
   "manifest_version": 3,
   "name": "MoodGuard — quick emotion actions",
   "version": "0.1",
-  "description": "When you look sad/happy, send a notification or close the tab / open a happy video. Local-only inference.",
-  "permissions": [
-    "scripting",
-    "activeTab",
-    "tabs",
-    "storage",
-    "notifications"
-  ],
+  "description": "Simple webcam popup.",
+  "permissions": ["storage"],
   "host_permissions": ["<all_urls>"],
   "action": {
     "default_popup": "popup.html",
@@ -17,5 +11,17 @@
   },
   "background": {
     "service_worker": "background.js"
-  }
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.linkedin.com/*"],
+      "js": ["content_script.js"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["*.js", "*.json", "face-api.min.js", "models/*", "popup.html", "styles.css"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }
