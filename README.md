@@ -4,7 +4,7 @@
 
 ---
 
-## 🚀 Features
+## Features
 
 - **Automatic Emotion Detection**:  
   As soon as you open LinkedIn, the extension triggers and starts tracking your facial expressions using face-api.js.
@@ -17,14 +17,14 @@
 
 ---
 
-## 💡 Motivation
+## Motivation
 
 Scrolling through LinkedIn can suck the joy out of your own accomplishments when you begin comparing yourself to others. This extension was built as a reminder and a tool:  
 > When you feel FOMO or jealousy, let the app nudge you back to recognizing your own unique journey.
 
 ---
 
-## 🏗️ How It Works
+## How It Works
 
 1. **Activates on LinkedIn**:  
    Once you visit LinkedIn in your browser, the extension quietly runs in the background.
@@ -37,7 +37,7 @@ Scrolling through LinkedIn can suck the joy out of your own accomplishments when
 
 ---
 
-## 📦 Models & Assets Used
+## Models & Assets Used
 
 IH8Linkedin leverages open-source models from [`face-api.js`](https://github.com/justadudewhohacks/face-api.js):
 
@@ -50,27 +50,20 @@ These were placed directly into the code and invoked by the extension for real-t
 
 ---
 
-## 📝 Key Commits
-
-- [Add MoodGuard Chrome extension for emotion detection](https://github.com/RajanChavada/IH8Linkedin/commit/a5bb2adaececc50df687c700acc11060e7d5cbce)
-- [Added popup with better UI](https://github.com/RajanChavada/IH8Linkedin/commit/fe10f7f5927f249769ad68005d6e6338083c8544)
-
----
-
-## 🙏 Credits
+## Credits
 
 - Models and backbone logic from [`face-api.js`](https://github.com/justadudewhohacks/face-api.js)
 - UI/UX, integration, and LinkedIn-specific triggers built by **[Rajan Chavada](https://github.com/RajanChavada/IH8Linkedin)**
 
 ---
 
-## 📸 Screenshots
+## Screenshots
 
-*(Add your screenshots here to showcase the extension in action!)*
+*(WIP)*
 
 ---
 
-## 🌈 Final Note
+## Final Note
 
 **IH8Linkedin** exists to help you stay mindful and present. Whenever comparing yourself online, remember:
 > Comparison is the thief of joy—focus on your own growth.
