@@ -7,8 +7,8 @@ if (window.__moodguard_loaded) {
 
   // Configuration defaults (overwritten by popup message)
   let config = {
-    emotion: 'sad',
-    threshold: 0.6,
+    emotion: 'surprised',  // Changed from 'sad' to 'surprised'
+    threshold: 0.6,        // Adjusted threshold for surprised detection
     hold: 2.0,
     actionType: 'notify'
   };
@@ -268,15 +268,15 @@ function sendRequest(channel, method, args) {
 
   function buildAction(actionType) {
     if (actionType === 'notify') {
-      return { message: 'Hey — you look sad. Take a pause.' };
+      return { message: 'Hey — you look surprised. Take a pause.' };
     }
     if (actionType === 'close') {
-      return { closeTab: true, message: 'Closing this tab to save your mood.' };
+      return { closeTab: true, message: 'Closing this tab - you seemed surprised!' };
     }
     if (actionType === 'open_happy') {
       return {
-        openUrl: 'https://www.youtube.com/results?search_query=feel+good+videos',
-        message: 'Opening a feel-good video!'
+        openUrl: 'https://www.youtube.com/results?search_query=surprising+moments',
+        message: 'Opening some surprising content!'
       };
     }
     return {};
@@ -618,7 +618,7 @@ if (window.emotionDetectionActive) {
   
   // Configuration for emotion detection
   const config = {
-    targetEmotion: 'sad',      // Which emotion to monitor
+    targetEmotion: 'surprised',      // Which emotion to monitor
     threshold: 0.6,            // Threshold (0-1) for emotion detection
     minDuration: 3,            // How many seconds the emotion must persist
     cooldownPeriod: 10,        // Seconds before another action can trigger
@@ -707,7 +707,7 @@ if (window.emotionDetectionActive) {
         `;
         
         moodButton.addEventListener('click', () => {
-          window.open('https://www.youtube.com/results?search_query=cute+animals+funny', '_blank');
+          window.open('https://www.youtube.com/results?search_query=how+to+not+get+fomo', '_blank');
         });
         
         buttonContainer.appendChild(breakButton);
@@ -832,7 +832,7 @@ if (window.emotionDetectionActive) {
               emotionDisplay.style.borderLeft = `4px solid #10b981`;
               
               // Open a new tab with uplifting content
-              window.open('https://www.youtube.com/results?search_query=cute+animals+funny', '_blank');
+              window.open('https://www.youtube.com/results?search_query=how+to+not+get+fomo', '_blank');
               
               // Reset counter after triggering
               emotionCounter = 0;

@@ -7,11 +7,11 @@ const emotionDisplay = document.getElementById('emotion-display');
 
 // Configuration for emotion detection
 const config = {
-  targetEmotion: 'surprised',      // Which emotion to monitor
-  threshold: 0.8,            // Threshold (0-1) for emotion detection
-  minDuration: 3,            // How many seconds the emotion must persist
-  cooldownPeriod: 10,        // Seconds before another action can trigger
-  actionType: 'notification' // Type of action to perform
+  targetEmotion: 'surprised',  // Changed from 'sad' to 'surprised'
+  threshold: 0.6,              // Lowered from 0.8 to 0.6 - surprised is easier to detect
+  minDuration: 3,              // How many seconds the emotion must persist
+  cooldownPeriod: 10,          // Seconds before another action can trigger
+  actionType: 'notification'   // Type of action to perform
 };
 
 // Track persistent emotion
@@ -86,13 +86,18 @@ async function startDetection() {
         // Update the emotion display with the strongest emotion
         emotionDisplay.textContent = `${strongestEmotion[0]}: ${(strongestEmotion[1] * 100).toFixed(0)}%`;
         
+        // Show all emotions in log for debugging
+        logEl.innerHTML = Object.entries(emotions)
+          .map(([emotion, score]) => `${emotion}: ${(score * 100).toFixed(1)}%`)
+          .join('<br>');
+        
         // Style based on emotion
         const emotionColors = {
           happy: '#10b981',
           sad: '#3b82f6',
           angry: '#ef4444',
           disgusted: '#8b5cf6',
-          surprised: '#f59e0b',
+          surprised: '#f59e0b',  // Highlighted for visibility
           fearful: '#6366f1',
           neutral: '#6b7280'
         };
@@ -100,24 +105,27 @@ async function startDetection() {
         emotionDisplay.style.background = `rgba(0,0,0,0.15)`;
         emotionDisplay.style.borderLeft = `4px solid ${emotionColors[strongestEmotion[0]] || '#6b7280'}`;
         
-        // Check for target emotion
+        // Check for target emotion (now surprised)
         const targetScore = emotions[config.targetEmotion] || 0;
         
         // Check if target emotion is strong enough
         if (targetScore >= config.threshold) {
           emotionCounter++;
           
+          // Show progress towards action
+          statusText.textContent = `Surprised: ${emotionCounter}/${config.minDuration}`;
+          
           // If emotion has persisted long enough, trigger action
           if (emotionCounter >= config.minDuration) {
-            console.log("Triggering action!");
+            console.log("Surprised expression detected! Triggering action!");
             
             // Visual feedback
-            emotionDisplay.textContent = `${config.targetEmotion} detected! Taking action...`;
-            emotionDisplay.style.background = `rgba(16, 185, 129, 0.2)`;
-            emotionDisplay.style.borderLeft = `4px solid #10b981`;
+            emotionDisplay.textContent = `Surprised detected! Taking action...`;
+            emotionDisplay.style.background = `rgba(245, 158, 11, 0.2)`;  // Amber color for surprised
+            emotionDisplay.style.borderLeft = `4px solid #f59e0b`;
             
-            // For demonstration, let's directly open a tab
-            window.open('https://www.youtube.com/results?search_query=cute+animals+funny', '_blank');
+            // For demonstration, let's directly open a tab with surprising content
+            window.open('https://www.youtube.com/results?search_query=surprising+moments', '_blank');
             
             // Reset counter after triggering
             emotionCounter = 0;
@@ -126,6 +134,7 @@ async function startDetection() {
         } else {
           // Reset counter if emotion not detected
           emotionCounter = 0;
+          statusText.textContent = "Active";
         }
       }
     } catch (error) {
