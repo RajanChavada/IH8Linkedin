@@ -826,17 +826,30 @@ if (window.emotionDetectionActive) {
             if (emotionCounter >= config.minDuration) {
               console.log("Triggering action!");
               
-              // Visual feedback
-              emotionDisplay.textContent = `${config.targetEmotion} detected! Taking action...`;
+              // Visual feedback with countdown
+              emotionDisplay.textContent = `${config.targetEmotion} detected! Redirecting...`;
               emotionDisplay.style.background = `rgba(16, 185, 129, 0.2)`;
               emotionDisplay.style.borderLeft = `4px solid #10b981`;
               
-              // Open a new tab with uplifting content
-              window.open('https://www.youtube.com/results?search_query=how+to+not+get+fomo', '_blank');
+              // Show a nice transition message
+              showRedirectMessage();
+              
+              // Open YouTube in a new tab and close LinkedIn after a brief delay
+              setTimeout(() => {
+                window.open('https://www.youtube.com/watch?v=fBuPKq8Zl0s', '_blank');
+                
+                // Close the current LinkedIn tab after opening YouTube
+                setTimeout(() => {
+                  window.close();
+                }, 500);
+              }, 1000);
               
               // Reset counter after triggering
               emotionCounter = 0;
               lastActionTime = Date.now();
+              
+              // Stop detection since we're closing
+              stopDetection();
             }
           } else {
             // Reset counter if emotion not detected
@@ -890,6 +903,69 @@ if (window.emotionDetectionActive) {
     }
     
     window.emotionDetectionActive = false;
+  }
+  
+  // Add a nice transition message function
+  function showRedirectMessage() {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, rgba(51, 113, 227, 0.95), rgba(94, 96, 206, 0.95));
+      z-index: 999999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-family: 'Inter', sans-serif;
+      animation: fadeIn 0.3s ease-out;
+    `;
+    
+    overlay.innerHTML = `
+      <div style="text-align: center; max-width: 500px; padding: 40px;">
+        <div style="font-size: 64px; margin-bottom: 20px;">🦧</div>
+        <h1 style="font-size: 32px; font-weight: 700; margin-bottom: 15px;">
+          Time for a Mental Break!
+        </h1>
+        <p style="font-size: 18px; line-height: 1.6; opacity: 0.9;">
+          Hey! Stop doom scrolling LinkedIn and do your own thing
+        </p>
+        <div style="margin-top: 30px;">
+          <div style="
+            display: inline-block;
+            padding: 12px 30px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 500;
+          ">
+            Opening uplifting content...
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // Add fade in animation
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    document.body.appendChild(overlay);
   }
   
   // Start everything
