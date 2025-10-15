@@ -5,20 +5,32 @@ const statusText = document.getElementById('status-text');
 const emotionDisplay = document.getElementById('emotion-display');
 
 
+// Brainrot TikTok links to unleash chaos
+const brainrotLinks = [
+  'https://www.tiktok.com/@masterclip08/video/7552400264179895583?lang=en&q=6%207&t=1760364887865',
+  'https://www.tiktok.com/search?q=ohio%20sigma%20skibidi&t=1760364887865',
+  'https://www.tiktok.com/search?q=brainrot%20compilation&t=1760364887865',
+  'https://www.tiktok.com/search?q=skibidi%20toilet&t=1760364887865',
+  'https://www.tiktok.com/search?q=sigma%20male%20grindset&t=1760364887865',
+  'https://www.tiktok.com/search?q=ohio%20meme&t=1760364887865'
+];
+
+const getRandomBrainrotLink = () => brainrotLinks[Math.floor(Math.random() * brainrotLinks.length)];
+
+
 // Configuration for emotion detection
 const config = {
   targetEmotion: 'surprised',  // Changed from 'sad' to 'surprised'
   threshold: 0.6,              // Lowered from 0.8 to 0.6 - surprised is easier to detect
-  minDuration: 3,              // How many seconds the emotion must persist
-  cooldownPeriod: 10,          // Seconds before another action can trigger
+  minDuration: 3,              // How many seconds the emotion must persist initially
   actionType: 'notification'   // Type of action to perform
 };
 
 // Track persistent emotion
 let emotionCounter = 0;
-let lastActionTime = 0;
 let detectionActive = false;
 let detectionInterval = null;
+let triggeredOnce = false;
 
 async function startCamera() {
   try {
@@ -105,31 +117,33 @@ async function startDetection() {
         emotionDisplay.style.background = `rgba(0,0,0,0.15)`;
         emotionDisplay.style.borderLeft = `4px solid ${emotionColors[strongestEmotion[0]] || '#6b7280'}`;
         
-        // Check for target emotion (now surprised)
+        // Check if target emotion (now surprised)
         const targetScore = emotions[config.targetEmotion] || 0;
-        
+        const requiredDuration = triggeredOnce ? 1 : config.minDuration;
+
         // Check if target emotion is strong enough
         if (targetScore >= config.threshold) {
           emotionCounter++;
-          
+
           // Show progress towards action
-          statusText.textContent = `Surprised: ${emotionCounter}/${config.minDuration}`;
-          
+          statusText.textContent = `Surprised: ${emotionCounter}/${requiredDuration}`;
+
           // If emotion has persisted long enough, trigger action
-          if (emotionCounter >= config.minDuration) {
-            console.log("Surprised expression detected! Triggering action!");
-            
+          if (emotionCounter >= requiredDuration) {
+            console.log("Surprised expression detected! Triggering brainrot!");
+
             // Visual feedback
-            emotionDisplay.textContent = `Surprised detected! Taking action...`;
+            emotionDisplay.textContent = `Surprised detected! Summoning brainrot...`;
             emotionDisplay.style.background = `rgba(245, 158, 11, 0.2)`;  // Amber color for surprised
             emotionDisplay.style.borderLeft = `4px solid #f59e0b`;
-            
-            // For demonstration, let's directly open a tab with surprising content
-            window.open('https://www.youtube.com/results?search_query=surprising+moments', '_blank');
-            
-            // Reset counter after triggering
+
+            chrome.runtime.sendMessage({
+              type: 'open-brainrot-window',
+              url: getRandomBrainrotLink()
+            });
+
+            triggeredOnce = true;
             emotionCounter = 0;
-            lastActionTime = Date.now();
           }
         } else {
           // Reset counter if emotion not detected
@@ -141,7 +155,7 @@ async function startDetection() {
       console.error("Detection error:", error);
       statusText.textContent = "Error";
     }
-  }, 1000);
+  }, 500);
 }
 
 function stopDetection() {
@@ -155,6 +169,8 @@ function stopDetection() {
   statusText.textContent = "Ready";
   emotionDisplay.style.display = 'none';
   detectionActive = false;
+  triggeredOnce = false;
+  emotionCounter = 0;
   
   // Stop camera
   if (videoEl.srcObject) {
@@ -169,6 +185,6 @@ startBtn.addEventListener('click', startDetection);
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
-  statusText.textContent = "Ready";
+  statusText.textContent = "Brainrot ready";
 });
 

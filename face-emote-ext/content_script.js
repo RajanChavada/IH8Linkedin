@@ -5,13 +5,30 @@ if (window.__moodguard_loaded) {
 } else {
   window.__moodguard_loaded = true;
 
-  // Configuration defaults (overwritten by popup message)
+  // Configuration - now with brainrot mode!
   let config = {
-    emotion: 'surprised',  // Changed from 'sad' to 'surprised'
-    threshold: 0.6,        // Adjusted threshold for surprised detection
-    hold: 2.0,
-    actionType: 'notify'
+    emotion: 'surprised',
+    threshold: 0.6,
+  hold: 3.0,
+    actionType: 'brainrot'
   };
+
+  // Add brainrot tracking variables
+  let brainrotMode = false;  // Once activated, keeps going
+  let lastBrainrotTime = 0;
+  let brainrotCooldown = 0; // no cooldown—spam windows while surprised
+  let emotionCounter = 0;
+  const minDuration = 3; // Initial confirmation time
+
+  // Brainrot TikTok links array
+  const brainrotLinks = [
+    'https://www.tiktok.com/@masterclip08/video/7552400264179895583?lang=en&q=6%207&t=1760364887865',
+    
+  ];
+
+  function getRandomBrainrotLink() {
+    return brainrotLinks[Math.floor(Math.random() * brainrotLinks.length)];
+  }
 
   let running = false;
   let videoEl = null;
@@ -34,7 +51,7 @@ async function ensureFaceApi() {
       
       if (!bridgeScriptUrl || !faceApiUrl) {
         throw new Error('Failed to get extension resource URLs');
-      }
+      } 
       
       // Create a message channel to communicate with the injected script
       const channel = new BroadcastChannel(namespace);
@@ -222,6 +239,7 @@ function sendRequest(channel, method, args) {
     detectionInterval = setInterval(async () => {
       if (!running) return;
       if (videoEl.readyState < 2) return;
+      
       try {
         // Run detection directly in content script context
         const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 });
@@ -236,18 +254,37 @@ function sendRequest(channel, method, args) {
 
         const expressions = result.expressions;
         const prob = expressions[config.emotion] || 0;
+        
         if (prob >= config.threshold) {
-          consecutiveMs += CHECK_MS;
-          if (consecutiveMs >= config.hold * 1000) {
-            // Trigger once, then pause for a cooldown
-            triggerAction(config.emotion);
-            consecutiveMs = 0;
-            // simple cooldown to avoid spamming: stop for 8 seconds
-            running = false;
-            setTimeout(() => { running = true; }, 8000);
+          if (!brainrotMode) {
+            // First time detection - need confirmation
+            consecutiveMs += CHECK_MS;
+            
+            if (consecutiveMs >= config.hold * 1000) {
+              console.log("🐵  Scroll on something more interesting!");
+
+              brainrotMode = true;
+              consecutiveMs = 0;
+
+              // Show activation message
+              showBrainrotActivation();
+
+              // Open first brainrot window
+              openBrainrotWindow();
+            }
+          } else {
+            // Already in brainrot mode - open immediately if cooldown passed
+            const now = Date.now();
+            if (now - lastBrainrotTime > brainrotCooldown) {
+              openBrainrotWindow();
+              showBrainrotFlash();
+            }
           }
         } else {
-          consecutiveMs = 0;
+          // If not in brainrot mode, reset counter
+          if (!brainrotMode) {
+            consecutiveMs = 0;
+          }
         }
       } catch (e) {
         console.error('detect error', e);
@@ -255,31 +292,134 @@ function sendRequest(channel, method, args) {
     }, CHECK_MS);
   }
 
-  function triggerAction(emotion) {
+  function openBrainrotWindow() {
+    const url = getRandomBrainrotLink();
+    lastBrainrotTime = Date.now();
+    
+    // Send message to background script to open new window
     chrome.runtime.sendMessage({
-      type: 'emotion-trigger',
-      payload: {
-        emotion,
-        tabId: (window.__moodguard_tabId || null),
-        action: buildAction(config.actionType)
-      }
+      type: 'open-brainrot-window',
+      url: url
     });
+    
+    console.log("Opening brainrot window:", url);
   }
 
-  function buildAction(actionType) {
-    if (actionType === 'notify') {
-      return { message: 'Hey — you look surprised. Take a pause.' };
-    }
-    if (actionType === 'close') {
-      return { closeTab: true, message: 'Closing this tab - you seemed surprised!' };
-    }
-    if (actionType === 'open_happy') {
-      return {
-        openUrl: 'https://www.youtube.com/results?search_query=surprising+moments',
-        message: 'Opening some surprising content!'
-      };
-    }
-    return {};
+  function showBrainrotActivation() {
+    const activation = document.createElement('div');
+    activation.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(45deg, #ff6b35, #f7931e, #ff6b35, #f7931e);
+      background-size: 400% 400%;
+      animation: brainrotGradient 2s ease infinite;
+      z-index: 999999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-family: 'Comic Sans MS', cursive, sans-serif;
+      text-align: center;
+    `;
+    
+    activation.innerHTML = `
+      <div style="font-size: 120px; margin-bottom: 20px; animation: bounce 1s infinite;">
+        🐵
+      </div>
+      <h1 style="font-size: 48px; font-weight: bold; margin-bottom: 20px; text-shadow: 4px 4px 8px rgba(0,0,0,0.5);">
+        Scroll on something more interesting!
+      </h1>
+      <p style="font-size: 24px; margin-bottom: 30px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+        Enough LinkedIn 💀
+      </p>
+      <div style="font-size: 18px; padding: 15px 30px; background: rgba(255,255,255,0.2); border-radius: 25px; backdrop-filter: blur(10px);">
+        🚀
+      </div>
+    `;
+    
+    // Add animations
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes brainrotGradient {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+      
+      @keyframes bounce {
+        0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+        40% { transform: translateY(-30px); }
+        60% { transform: translateY(-15px); }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    document.body.appendChild(activation);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+      activation.style.animation = 'fadeOut 0.5s ease-out';
+      setTimeout(() => activation.remove(), 500);
+    }, 3000);
+  }
+
+  function showBrainrotFlash() {
+    const flash = document.createElement('div');
+    flash.style.cssText = `
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, #ff6b35, #f7931e);
+      color: white;
+      padding: 15px 25px;
+      border-radius: 50px;
+      z-index: 999998;
+      font-family: 'Comic Sans MS', cursive, sans-serif;
+      font-weight: bold;
+      font-size: 16px;
+      box-shadow: 0 8px 32px rgba(255, 107, 53, 0.4);
+      animation: flashBounce 0.6s ease-out;
+    `;
+    
+    const messages = [
+      "🐵 Stop doomscrolling linkedIn we all hate it",
+    ];
+    
+    flash.textContent = messages[Math.floor(Math.random() * messages.length)];
+    
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes flashBounce {
+        0% {
+          opacity: 0;
+          transform: translateX(-50%) translateY(-20px) scale(0.8);
+        }
+        50% {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0px) scale(1.1);
+        }
+        100% {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0px) scale(1);
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    document.body.appendChild(flash);
+    
+    // Remove after 1.5 seconds
+    setTimeout(() => {
+      flash.style.opacity = '0';
+      flash.style.transform = 'translateX(-50%) translateY(-20px) scale(0.8)';
+      flash.style.transition = 'all 0.3s ease-out';
+      setTimeout(() => flash.remove(), 300);
+    }, 1500);
   }
 
   function stopAll() {
@@ -619,14 +759,13 @@ if (window.emotionDetectionActive) {
   // Configuration for emotion detection
   const config = {
     targetEmotion: 'surprised',      // Which emotion to monitor
-    threshold: 0.6,            // Threshold (0-1) for emotion detection
-    minDuration: 3,            // How many seconds the emotion must persist
-    cooldownPeriod: 10,        // Seconds before another action can trigger
+  threshold: 0.6,            // Threshold (0-1) for emotion detection
+  minDuration: 3,            // How many seconds the emotion must persist initially
   };
   
   // Variables
   let emotionCounter = 0;
-  let lastActionTime = 0;
+  let triggeredOnce = false;
   let detectionActive = false;
   let detectionInterval = null;
   let faceapi = null;
@@ -691,7 +830,10 @@ if (window.emotionDetectionActive) {
         `;
         
         breakButton.addEventListener('click', () => {
-          window.open('https://www.youtube.com/results?search_query=relaxing+videos', '_blank');
+          chrome.runtime.sendMessage({
+            type: 'open-brainrot-window',
+            url: getRandomBrainrotLink()
+          });
         });
         
         const moodButton = document.createElement('button');
@@ -707,7 +849,10 @@ if (window.emotionDetectionActive) {
         `;
         
         moodButton.addEventListener('click', () => {
-          window.open('https://www.youtube.com/results?search_query=how+to+not+get+fomo', '_blank');
+          chrome.runtime.sendMessage({
+            type: 'open-brainrot-window',
+            url: getRandomBrainrotLink()
+          });
         });
         
         buttonContainer.appendChild(breakButton);
@@ -815,41 +960,30 @@ if (window.emotionDetectionActive) {
           
           // Check if target emotion is strong enough
           if (targetScore >= config.threshold) {
+            const requiredDuration = triggeredOnce ? 1 : config.minDuration;
             emotionCounter++;
-            
+
             // Show progress towards action trigger
-            const progress = emotionCounter / config.minDuration;
-            emotionDisplay.textContent = `${config.targetEmotion} detected (${emotionCounter}/${config.minDuration})`;
+            const progress = Math.min(emotionCounter / requiredDuration, 1);
+            emotionDisplay.textContent = `${config.targetEmotion} detected (${emotionCounter}/${requiredDuration})`;
             emotionDisplay.style.background = `linear-gradient(to right, rgba(16, 185, 129, 0.2) ${progress*100}%, rgba(0,0,0,0.15) ${progress*100}%)`;
-            
+
             // If emotion has persisted long enough, trigger action
-            if (emotionCounter >= config.minDuration) {
-              console.log("Triggering action!");
-              
-              // Visual feedback with countdown
-              emotionDisplay.textContent = `${config.targetEmotion} detected! Redirecting...`;
+            if (emotionCounter >= requiredDuration) {
+              console.log("Triggering brainrot action!");
+
+              // Visual feedback
+              emotionDisplay.textContent = `Summoning endless brainrot...`;
               emotionDisplay.style.background = `rgba(16, 185, 129, 0.2)`;
               emotionDisplay.style.borderLeft = `4px solid #10b981`;
-              
-              // Show a nice transition message
-              showRedirectMessage();
-              
-              // Open YouTube in a new tab and close LinkedIn after a brief delay
-              setTimeout(() => {
-                window.open('https://www.youtube.com/watch?v=fBuPKq8Zl0s', '_blank');
-                
-                // Close the current LinkedIn tab after opening YouTube
-                setTimeout(() => {
-                  window.close();
-                }, 500);
-              }, 1000);
-              
-              // Reset counter after triggering
+
+              // Open the next brainrot window immediately
+              openBrainrotWindow();
+              brainrotMode = true;
+              showBrainrotFlash();
+
+              triggeredOnce = true;
               emotionCounter = 0;
-              lastActionTime = Date.now();
-              
-              // Stop detection since we're closing
-              stopDetection();
             }
           } else {
             // Reset counter if emotion not detected
@@ -860,7 +994,7 @@ if (window.emotionDetectionActive) {
         console.error("Detection error:", error);
         statusText.textContent = "Error";
       }
-    }, 1000);
+  }, 500);
   }
   
   function stopDetection() {
@@ -871,6 +1005,8 @@ if (window.emotionDetectionActive) {
     
     document.getElementById('ih8linkedin-status').textContent = "Paused";
     detectionActive = false;
+    emotionCounter = 0;
+    triggeredOnce = false;
   }
   
   function toggleDetection() {
@@ -905,69 +1041,75 @@ if (window.emotionDetectionActive) {
     window.emotionDetectionActive = false;
   }
   
-  // Add a nice transition message function
-  function showRedirectMessage() {
-    const overlay = document.createElement('div');
-    overlay.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(135deg, rgba(51, 113, 227, 0.95), rgba(94, 96, 206, 0.95));
-      z-index: 999999;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-family: 'Inter', sans-serif;
-      animation: fadeIn 0.3s ease-out;
-    `;
-    
-    overlay.innerHTML = `
-      <div style="text-align: center; max-width: 500px; padding: 40px;">
-        <div style="font-size: 64px; margin-bottom: 20px;">🦧</div>
-        <h1 style="font-size: 32px; font-weight: 700; margin-bottom: 15px;">
-          Time for a Mental Break!
-        </h1>
-        <p style="font-size: 18px; line-height: 1.6; opacity: 0.9;">
-          Hey! Stop doom scrolling LinkedIn and do your own thing
-        </p>
-        <div style="margin-top: 30px;">
-          <div style="
-            display: inline-block;
-            padding: 12px 30px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 25px;
-            font-size: 16px;
-            font-weight: 500;
-          ">
-            Opening uplifting content...
-          </div>
-        </div>
-      </div>
-    `;
-    
-    // Add fade in animation
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes fadeIn {
-        from {
-          opacity: 0;
-          transform: scale(0.95);
-        }
-        to {
-          opacity: 1;
-          transform: scale(1);
-        }
-      }
-    `;
-    document.head.appendChild(style);
-    
-    document.body.appendChild(overlay);
-  }
   
   // Start everything
   initialize();
+}
+
+// Add a reset function in case user wants to escape brainrot mode
+function resetBrainrotMode() {
+  brainrotMode = false;
+  emotionCounter = 0;
+  document.getElementById('ih8linkedin-status').textContent = "Active";
+  document.getElementById('ih8linkedin-emotion').textContent = "Monitoring emotions...";
+}
+
+// Add escape hatch (optional - press ESC to reset)
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && brainrotMode) {
+    resetBrainrotMode();
+    
+    // Show escape message
+    const escape = document.createElement('div');
+    escape.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.9);
+      color: white;
+      padding: 20px;
+      border-radius: 15px;
+      z-index: 999999;
+      text-align: center;
+      font-family: sans-serif;
+    `;
+    escape.innerHTML = `
+      <div style="font-size: 24px;">🛑</div>
+      <div style="margin-top: 10px;">BRAINROT MODE DEACTIVATED</div>
+      <div style="font-size: 12px; margin-top: 5px; opacity: 0.7;">Press ESC again to reactivate</div>
+    `;
+    document.body.appendChild(escape);
+    setTimeout(() => escape.remove(), 2000);
+  }
+});
+
+// Don't send the old emotion-trigger message anymore
+// Instead, handle brainrot directly here
+function triggerAction(emotion) {
+  if (config.actionType === 'brainrot') {
+    if (!brainrotMode) {
+      console.log("🐵 BRAINROT MODE ACTIVATED!");
+      brainrotMode = true;
+      showBrainrotActivation();
+      openBrainrotWindow();
+    } else {
+      const now = Date.now();
+      if (now - lastBrainrotTime > brainrotCooldown) {
+        openBrainrotWindow();
+        showBrainrotFlash();
+      }
+    }
+    return;
+  }
+  
+  // Keep the old behavior for other action types
+  chrome.runtime.sendMessage({
+    type: 'emotion-trigger',
+    payload: {
+      emotion,
+      tabId: (window.__moodguard_tabId || null),
+      action: buildAction(config.actionType)
+    }
+  });
 }

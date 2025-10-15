@@ -3,7 +3,7 @@
   "name": "MoodGuard — quick emotion actions",
   "version": "0.1",
   "description": "Simple webcam popup.",
-  "permissions": ["storage"],
+  "permissions": ["storage", "notifications"],
   "host_permissions": ["<all_urls>"],
   "action": {
     "default_popup": "popup.html",
@@ -20,7 +20,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["face-api-bridge.js", "face-api.min.js", "models/*"],
+      "resources": ["face-api-bridge.js", "face-api.min.js", "models/*", "icon48.png"],
       "matches": ["<all_urls>"]
     }
   ]
